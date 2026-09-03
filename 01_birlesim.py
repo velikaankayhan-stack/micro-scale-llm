@@ -52,10 +52,6 @@ import matplotlib.pyplot as plt
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# =====================================================================
-# AYARLAR
-# =====================================================================
-
 MODELLER = [
     ("Qwen/Qwen2.5-0.5B", "Qwen2.5-0.5B"),
     ("HuggingFaceTB/SmolLM2-360M", "SmolLM2-360M"),
