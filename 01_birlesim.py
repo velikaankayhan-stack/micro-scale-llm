@@ -52,6 +52,10 @@ import matplotlib.pyplot as plt
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+# =====================================================================
+# AYARLAR
+# =====================================================================
+
 MODELLER = [
     ("Qwen/Qwen2.5-0.5B", "Qwen2.5-0.5B"),
     ("HuggingFaceTB/SmolLM2-360M", "SmolLM2-360M"),
@@ -82,11 +86,6 @@ ZAMAN = datetime.datetime.now().strftime("%Y%m%d_%H%M")
 # METİN HAZIRLAMA
 # =====================================================================
 
-YEDEK_METIN = (
-    "The transformer architecture processes sequences of tokens through "
-    "stacked layers of attention and feed forward networks. Each layer reads "
-    "from and writes to a shared residual stream. "
-) * 400
 
 
 def metni_getir():
@@ -97,15 +96,22 @@ def metni_getir():
         print(f"  metin: {METIN_DOSYASI} ({len(metin)} karakter)")
         return metin
 
-    try:
-        from datasets import load_dataset
-        ds = load_dataset("wikitext", "wikitext-2-raw-v1", split="test")
-        metin = "\n\n".join(ds["text"])
-        print(f"  metin: WikiText-2 test ({len(metin)} karakter)")
-        return metin
-    except Exception as e:
-        print(f"  ! WikiText yüklenemedi ({e}), yedek metin kullanılıyor")
-        return YEDEK_METIN
+    # SESSİZ YEDEK YOK. Veri gelmezse betik durur.
+    # (3 Eylül'de yedek metin devreye girdi ve bir deneyi çöpe attı.)
+    from datasets import load_dataset          # yoksa: pip install datasets
+    ds = load_dataset("wikitext", "wikitext-2-raw-v1", split="test")
+    metin = "\n\n".join(ds["text"])
+    print(f"  metin: WikiText-2 test ({len(metin)} karakter)")
+
+    if len(metin) < 100_000:
+        raise RuntimeError(f"Metin çok kısa ({len(metin)} karakter) — ölçüm anlamsız olur")
+
+    # Tekrar kontrolü: metin gerçekten çeşitli mi?
+    kelimeler = metin.split()
+    if len(set(kelimeler[:20000])) < 2000:
+        raise RuntimeError("Metin fazla tekrarlı — farklı bir kaynak kullan")
+
+    return metin
 
 
 # =====================================================================
@@ -345,6 +351,9 @@ def main():
     os.makedirs(KLASOR_GRAFIK, exist_ok=True)
 
     print(f"cihaz: {CIHAZ}")
+    if CIHAZ == "cpu":
+        print("  ! UYARI: CUDA yok, CPU'da çalışacak. Bu deney için sorun değil")
+        print("    ama çok yavaş olur. torch'un CUDA'lı sürümünü kurmayı düşün.")
     if CIHAZ == "cuda":
         print(f"kart : {torch.cuda.get_device_name(0)}")
 
